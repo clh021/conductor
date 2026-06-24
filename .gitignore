@@ -27,6 +27,8 @@ wheels/
 # PyInstaller
 *.manifest
 *.spec
+build-binary/
+dist-binary/
 
 # Installer logs
 pip-log.txt

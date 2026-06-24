@@ -63,8 +63,23 @@ except Exception as _faulthandler_exc:  # noqa: BLE001 - diagnostics must never 
     except Exception:  # noqa: BLE001 - really, truly must not break startup
         pass
 
+from importlib.metadata import PackageNotFoundError as _PackageNotFoundError
 from importlib.metadata import version as _pkg_version
 
-__version__ = _pkg_version("conductor-cli")
+
+def _resolve_version() -> str:
+    """Return the installed package version or a safe fallback.
+
+    Frozen binaries and some source-only execution paths may not ship
+    ``importlib.metadata`` distribution records. In that case we still
+    want the CLI to start rather than crash during import.
+    """
+    try:
+        return _pkg_version("conductor-cli")
+    except _PackageNotFoundError:
+        return "0+unknown"
+
+
+__version__ = _resolve_version()
 
 __all__ = ["__version__"]

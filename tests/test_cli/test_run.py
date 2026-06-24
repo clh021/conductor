@@ -454,6 +454,23 @@ class TestVersionFlag:
         assert result.exit_code == 0
         assert "Conductor v" in result.output
 
+    def test_version_falls_back_without_package_metadata(self) -> None:
+        """Frozen/source-only builds should not crash on missing package metadata."""
+        import importlib
+        import sys
+
+        from importlib.metadata import PackageNotFoundError
+
+        sys.modules.pop("conductor", None)
+        try:
+            with patch("importlib.metadata.version", side_effect=PackageNotFoundError):
+                conductor = importlib.import_module("conductor")
+            assert conductor.__version__ == "0+unknown"
+        finally:
+            sys.modules.pop("conductor", None)
+            importlib.import_module("conductor")
+
+
 class TestHelpFlag:
     """Tests for the --help flag."""
 
