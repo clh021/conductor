@@ -167,7 +167,11 @@ class EventLogSubscriber:
         if self._handle is None or self._handle.closed:
             return
         try:
-            line = json.dumps(_make_json_safe(event.to_dict()), separators=(",", ":"))
+            line = json.dumps(
+                _make_json_safe(event.to_dict()),
+                separators=(",", ":"),
+                ensure_ascii=False,
+            )
             self._handle.write(line + "\n")
             self._handle.flush()
         except Exception:

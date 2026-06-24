@@ -67,6 +67,22 @@ class TestEventLogSubscriber:
         assert parsed["data"]["path"] == "/some/path"
         assert parsed["data"]["raw"] == "bytes-data"
 
+    def test_preserves_utf8_characters_in_jsonl(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("TMPDIR", str(tmp_path))
+        sub = EventLogSubscriber("utf8")
+
+        event = WorkflowEvent(
+            type="workflow_input",
+            timestamp=time.time(),
+            data={"task": "中文任务：自动填写付款金额"},
+        )
+        sub.on_event(event)
+        sub.close()
+
+        raw = sub.path.read_text(encoding="utf-8").strip()
+        assert "中文任务" in raw
+        assert "\\u4e2d\\u6587" not in raw
+
     def test_safe_after_close(self, tmp_path, monkeypatch):
         monkeypatch.setenv("TMPDIR", str(tmp_path))
         sub = EventLogSubscriber("close-test")

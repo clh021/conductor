@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 from typer.testing import CliRunner
@@ -21,6 +21,7 @@ from conductor.cli.app import app
 from conductor.cli.run import (
     InputCollector,
     coerce_value,
+    display_workflow_result_summary,
     parse_input_flags,
     resolve_mcp_env_vars,
 )
@@ -402,6 +403,42 @@ output:
             assert "Hello, World!" in result.output or result.exit_code == 0
 
 
+class TestRuntimePatches:
+    """Regression coverage for fork-specific runtime behaviors."""
+
+    def test_display_workflow_result_summary_preserves_utf8(self) -> None:
+        from conductor.cli import run as run_module
+
+        console = Mock()
+        original_file_console = run_module._file_console
+        run_module._file_console = None
+        try:
+            display_workflow_result_summary(
+                {"pipeline_result": "failed", "final_status": "审查未通过"},
+                {
+                    "agent_outputs": {
+                        "reasonix_review": {
+                            "exit_code": 2,
+                            "summary": "审查未通过",
+                            "stdout": (
+                                "审查结果：存在阻塞性问题\n"
+                                "总结：中文提示需要保留\n"
+                            ),
+                        }
+                    }
+                },
+                console=console,
+            )
+        finally:
+            run_module._file_console = original_file_console
+
+        rendered = "\n".join(str(call.args[0]) for call in console.print.call_args_list if call.args)
+        assert "Workflow Result Summary" in rendered
+        assert "审查未通过" in rendered
+        assert "中文提示需要保留" in rendered
+        assert "\\u5ba1\\u67e5" not in rendered
+
+
 class TestVersionFlag:
     """Tests for the --version flag."""
 
@@ -416,7 +453,6 @@ class TestVersionFlag:
         result = runner.invoke(app, ["-v"])
         assert result.exit_code == 0
         assert "Conductor v" in result.output
-
 
 class TestHelpFlag:
     """Tests for the --help flag."""

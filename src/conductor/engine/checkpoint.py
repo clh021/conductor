@@ -262,7 +262,7 @@ class CheckpointManager:
             }
 
             # Serialize to JSON
-            json_data = json.dumps(checkpoint, indent=2)
+            json_data = json.dumps(checkpoint, indent=2, ensure_ascii=False)
 
             # Write atomically: .tmp then rename
             checkpoint_path = checkpoints_dir / f"{workflow_name}-{timestamp}.json"

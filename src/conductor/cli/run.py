@@ -23,6 +23,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
+from conductor.cli.result_summary import emit_workflow_result_summary
 from conductor.config.loader import load_config
 from conductor.engine.workflow import ExecutionPlan, WorkflowEngine
 from conductor.exceptions import WorkflowTerminated
@@ -82,6 +83,33 @@ _file_handle: Any = None
 
 # Pattern for resolving ${VAR} and ${VAR:-default} in env values
 _ENV_VAR_PATTERN = re.compile(r"\$\{([^}:]+)(?::-([^}]*))?\}")
+
+
+def display_workflow_result_summary(
+    result: dict[str, Any] | None,
+    execution_summary: dict[str, Any] | None,
+    console: Console | None = None,
+) -> None:
+    """Display a concise final workflow summary with stage-level results."""
+    from conductor.cli.app import is_verbose
+
+    should_console = is_verbose()
+    should_file = _file_console is not None
+    if not should_console and not should_file:
+        return
+
+    output_console = console if console is not None else _verbose_console
+    targets: list[Console] = []
+    if should_console:
+        targets.append(output_console)
+    if _file_console is not None:
+        targets.append(_file_console)
+
+    def _print(text: str = "", *, style: str | None = None) -> None:
+        for target in targets:
+            target.print(text, style=style)
+
+    emit_workflow_result_summary(result, execution_summary, _print)
 
 
 def generate_log_path(workflow_name: str) -> Path:
@@ -1528,7 +1556,7 @@ async def run_workflow_async(
         emitter.subscribe(console_subscriber.on_event)
 
         if inputs:
-            verbose_log_section("Workflow Inputs", json.dumps(inputs, indent=2))
+            verbose_log_section("Workflow Inputs", json.dumps(inputs, indent=2, ensure_ascii=False))
 
         # Apply provider override if specified.
         # Reassigning ``runtime.provider`` to a string re-triggers the
@@ -1575,7 +1603,6 @@ async def run_workflow_async(
                 f"Single provider mode: {_describe_provider(config.workflow.runtime.provider)}"
             )
 
-        # Use ProviderRegistry for multi-provider support
         async with ProviderRegistry(config, mcp_servers=mcp_servers) as registry:
             # Create and run workflow engine
             verbose_log("Starting workflow execution...")
@@ -1653,11 +1680,14 @@ async def run_workflow_async(
                     style="yellow",
                 )
 
+            execution_summary = engine.get_execution_summary()
+
             # Display usage summary if cost tracking is enabled
             if config.workflow.cost.show_summary:
-                summary = engine.get_execution_summary()
-                if "usage" in summary:
-                    display_usage_summary(summary["usage"])
+                if "usage" in execution_summary:
+                    display_usage_summary(execution_summary["usage"])
+
+            display_workflow_result_summary(result, execution_summary)
 
             # Post-execution dashboard lifecycle — runs for both clean exits
             # and explicit-terminate failures so the user can observe the
@@ -2256,11 +2286,14 @@ async def resume_workflow_async(
                     style="yellow",
                 )
 
+            execution_summary = engine.get_execution_summary()
+
             # Display usage summary if cost tracking is enabled
             if config.workflow.cost.show_summary:
-                summary = engine.get_execution_summary()
-                if "usage" in summary:
-                    display_usage_summary(summary["usage"])
+                if "usage" in execution_summary:
+                    display_usage_summary(execution_summary["usage"])
+
+            display_workflow_result_summary(result, execution_summary)
 
             # Cleanup checkpoint after the resumed run finishes. Both clean
             # completion and explicit termination are terminal outcomes — the

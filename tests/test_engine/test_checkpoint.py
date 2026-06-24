@@ -254,6 +254,28 @@ class TestSaveCheckpoint:
         assert data["inputs"]["file"] == "/tmp/x"
         assert data["inputs"]["data"] == "bytes"
 
+    def test_preserves_utf8_characters_in_checkpoint(self, tmp_path: Path) -> None:
+        wf = _write_workflow(tmp_path)
+        ctx = _make_context({"task": "中文任务：自动填写付款金额"})
+        limits = _make_limits()
+        error = RuntimeError("中文失败原因")
+
+        with patch.object(CheckpointManager, "get_checkpoints_dir", return_value=tmp_path):
+            path = CheckpointManager.save_checkpoint(
+                wf,
+                ctx,
+                limits,
+                "reasonix_review",
+                error,
+                {"task": "中文任务：自动填写付款金额"},
+            )
+
+        assert path is not None
+        raw = path.read_text(encoding="utf-8")
+        assert "中文任务" in raw
+        assert "中文失败原因" in raw
+        assert "\\u4e2d\\u6587" not in raw
+
     def test_copilot_session_ids_included(self, tmp_path: Path) -> None:
         wf = _write_workflow(tmp_path)
         ctx = _make_context()
