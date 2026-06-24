@@ -2102,6 +2102,12 @@ class CopilotProvider(AgentProvider):
         if self._mock_handler is not None:
             return True
 
+        # When custom OpenAI-compatible routing is configured, defer connectivity
+        # validation to the first real session request instead of requiring a
+        # Copilot-authorized models.list call during workflow startup.
+        if self._provider_settings is not None and self._provider_settings.has_custom_routing():
+            return True
+
         if not COPILOT_SDK_AVAILABLE:
             raise ProviderError(
                 "GitHub Copilot SDK is not installed",
