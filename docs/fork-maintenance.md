@@ -11,6 +11,19 @@ This fork intentionally contains only Conductor runtime changes. Personal workfl
 
 That separation keeps upstream rebases small and avoids coupling the CLI runtime to one machine's local workflow inventory.
 
+## Agent Runbook
+
+For future AI-assisted upstream sync and fork cleanup work, use:
+
+- `docs/agent-fork-update-runbook.md`
+
+Recommended prompt:
+
+```text
+Read docs/agent-fork-update-runbook.md and execute it.
+Goal: sync upstream changes into this fork, keep local runtime patches maintainable, and leave me with a clean summary of what changed.
+```
+
 ## Local Patch Set
 
 The current branch keeps four local changes:
