@@ -420,10 +420,7 @@ class TestRuntimePatches:
                         "reasonix_review": {
                             "exit_code": 2,
                             "summary": "审查未通过",
-                            "stdout": (
-                                "审查结果：存在阻塞性问题\n"
-                                "总结：中文提示需要保留\n"
-                            ),
+                            "stdout": ("审查结果：存在阻塞性问题\n总结：中文提示需要保留\n"),
                         }
                     }
                 },
@@ -432,7 +429,9 @@ class TestRuntimePatches:
         finally:
             run_module._file_console = original_file_console
 
-        rendered = "\n".join(str(call.args[0]) for call in console.print.call_args_list if call.args)
+        rendered = "\n".join(
+            str(call.args[0]) for call in console.print.call_args_list if call.args
+        )
         assert "Workflow Result Summary" in rendered
         assert "审查未通过" in rendered
         assert "中文提示需要保留" in rendered
@@ -458,7 +457,6 @@ class TestVersionFlag:
         """Frozen/source-only builds should not crash on missing package metadata."""
         import importlib
         import sys
-
         from importlib.metadata import PackageNotFoundError
 
         sys.modules.pop("conductor", None)

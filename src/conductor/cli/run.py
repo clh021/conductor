@@ -1683,9 +1683,8 @@ async def run_workflow_async(
             execution_summary = engine.get_execution_summary()
 
             # Display usage summary if cost tracking is enabled
-            if config.workflow.cost.show_summary:
-                if "usage" in execution_summary:
-                    display_usage_summary(execution_summary["usage"])
+            if config.workflow.cost.show_summary and "usage" in execution_summary:
+                display_usage_summary(execution_summary["usage"])
 
             display_workflow_result_summary(result, execution_summary)
 
@@ -2289,9 +2288,8 @@ async def resume_workflow_async(
             execution_summary = engine.get_execution_summary()
 
             # Display usage summary if cost tracking is enabled
-            if config.workflow.cost.show_summary:
-                if "usage" in execution_summary:
-                    display_usage_summary(execution_summary["usage"])
+            if config.workflow.cost.show_summary and "usage" in execution_summary:
+                display_usage_summary(execution_summary["usage"])
 
             display_workflow_result_summary(result, execution_summary)
 
